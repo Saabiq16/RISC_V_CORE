@@ -14,7 +14,7 @@ module register_file (
 
     always_comb begin
         if (read_addr1 == 5'd0) begin
-            read_data1 = 32'b0; // Register x0 is always zero
+            read_data1 = 32'b0;                   // Register x0 is always zero
         end
         else begin
             read_data1 = registers[read_addr1];
