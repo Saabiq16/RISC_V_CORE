@@ -39,10 +39,11 @@
 `define RES_IMM      2'b11     // Reserved / Upper imm
 
 // ── ALUOp (Control Unit → ALU Control) ──────────────
-`define ALUOP_ADD    2'b00     // Force ADD (LW, SW)
-`define ALUOP_SUB    2'b01     // Force SUB (Branch)
-`define ALUOP_RTYPE  2'b10     // Use funct3/funct7 (R-type)
-`define ALUOP_ITYPE  2'b11     // Use funct3 only (I-ALU)
+`define ALUOP_ADD    3'b000     // Force ADD (LW, SW, AUIPC)
+`define ALUOP_SUB    3'b001     // Force SUB (Branch)
+`define ALUOP_RTYPE  3'b010     // Use funct3/funct7 (R-type)
+`define ALUOP_ITYPE  3'b011     // Use funct3 only (I-ALU)
+`define ALUOP_LUI    3'b100     // Force ALU_LUI (LUI)
 
 // ── Branch Funct3 Codes ──────────────────────────────
 `define BR_BEQ       3'b000
@@ -62,5 +63,16 @@
 `define FUNCT3_SB    3'b000
 `define FUNCT3_SH    3'b001
 `define FUNCT3_SW    3'b010
+
+// ── R-Type and I-Type Funct3 Codes ──────────────────────────────
+`define FUNCT3_ADD  3'b000
+`define FUNCT3_SLL  3'b001
+`define FUNCT3_SLT  3'b010
+`define FUNCT3_SLTU 3'b011
+`define FUNCT3_XOR  3'b100
+`define FUNCT3_SR   3'b101
+`define FUNCT3_OR   3'b110
+`define FUNCT3_AND  3'b111
+
 
 `endif // RISCV_DEFINES_SVH

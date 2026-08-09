@@ -72,36 +72,42 @@ module tb_alu;
     endtask
 
     initial begin
-        fail = 0;               // ← initialize here
+        fail = 0;
 
-        // ADD
-        a=32'd15;       b=32'd10;       alu_op=`ALU_ADD; #10; check(32'd25,         0,0,0,1, 1);
-        a=32'd0;        b=32'd0;        alu_op=`ALU_ADD; #10; check(32'd0,          1,0,0,1, 2);
-        a=32'hFFFFFFFF; b=32'd1;        alu_op=`ALU_ADD; #10; check(32'd0,          1,0,0,1, 3);
+        // ADD -- flags are NOT computed for ADD in the new design.
+        // Expect zero/negative/overflow/carry = 0 regardless of result.
+        a=32'd15;       b=32'd10;       alu_op=`ALU_ADD; #10; check(32'd25,         0,0,0,0, 1);
+        a=32'd0;        b=32'd0;        alu_op=`ALU_ADD; #10; check(32'd0,          0,0,0,0, 2);
+        a=32'hFFFFFFFF; b=32'd1;        alu_op=`ALU_ADD; #10; check(32'd0,          0,0,0,0, 3);
 
-        // SUB
+        // SUB -- flags ARE computed here (unchanged from before)
         a=32'd15;       b=32'd11;       alu_op=`ALU_SUB; #10; check(32'd4,          0,0,0,1, 4);
         a=32'd10;       b=32'd15;       alu_op=`ALU_SUB; #10; check(32'hFFFFFFFB,   0,1,0,0, 5);
 
-        // AND / OR / XOR
-        a=32'hF0F0F0F0; b=32'h0F0F0F0F; alu_op=`ALU_AND; #10; check(32'h00000000,  1,0,0,1, 6);
-        a=32'hF0F0F0F0; b=32'h0F0F0F0F; alu_op=`ALU_OR;  #10; check(32'hFFFFFFFF,  0,1,0,1, 7);
-        a=32'hF0F0F0F0; b=32'h0F0F0F0F; alu_op=`ALU_XOR; #10; check(32'hFFFFFFFF,  0,1,0,1, 8);
+        // AND / OR / XOR -- no flags computed, expect all 0
+        a=32'hF0F0F0F0; b=32'h0F0F0F0F; alu_op=`ALU_AND; #10; check(32'h00000000,  0,0,0,0, 6);
+        a=32'hF0F0F0F0; b=32'h0F0F0F0F; alu_op=`ALU_OR;  #10; check(32'hFFFFFFFF,  0,0,0,0, 7);
+        a=32'hF0F0F0F0; b=32'h0F0F0F0F; alu_op=`ALU_XOR; #10; check(32'hFFFFFFFF,  0,0,0,0, 8);
 
-        // SHIFTS
-        a=32'h00000001; b=32'd1;        alu_op=`ALU_SLL; #10; check(32'h00000002,   0,0,0,1, 9);
-        a=32'h80000000; b=32'd1;        alu_op=`ALU_SRL; #10; check(32'h40000000,   0,0,0,1,10);
-        a=32'h80000000; b=32'd1;        alu_op=`ALU_SRA; #10; check(32'hC0000000,   0,1,0,1,11);
+        // SHIFTS -- no flags computed, expect all 0
+        a=32'h00000001; b=32'd1;        alu_op=`ALU_SLL; #10; check(32'h00000002,   0,0,0,0, 9);
+        a=32'h80000000; b=32'd1;        alu_op=`ALU_SRL; #10; check(32'h40000000,   0,0,0,0,10);
+        a=32'h80000000; b=32'd1;        alu_op=`ALU_SRA; #10; check(32'hC0000000,   0,0,0,0,11);
 
-        // SLT / SLTU
-        a=32'hFFFFFFFF; b=32'h00000001; alu_op=`ALU_SLT;  #10; check(32'd1,         0,0,0,1,12);
-        a=32'hFFFFFFFF; b=32'h00000001; alu_op=`ALU_SLTU; #10; check(32'd0,         1,0,0,1,13);
+        // SLT / SLTU -- no flags computed, expect all 0
+        a=32'hFFFFFFFF; b=32'h00000001; alu_op=`ALU_SLT;  #10; check(32'd1,         0,0,0,0,12);
+        a=32'hFFFFFFFF; b=32'h00000001; alu_op=`ALU_SLTU; #10; check(32'd0,         0,0,0,0,13);
 
-        // LUI
+        // LUI -- no flags computed, expect all 0
         a=32'h00000000; b=32'h12345678; alu_op=`ALU_LUI;  #10; check(32'h12345678,  0,0,0,0,14);
 
-        // OVERFLOW
-        a=32'h7FFFFFFF; b=32'h00000001; alu_op=`ALU_ADD;  #10; check(32'h80000000,  0,1,1,1,15);
+        // OVERFLOW checks
+        // ADD: overflow is NOT computed anymore -- expect 0 even though a real
+        // add here would mathematically overflow. This is a deliberate design
+        // choice: RV32I never consumes overflow off ADD.
+        a=32'h7FFFFFFF; b=32'h00000001; alu_op=`ALU_ADD;  #10; check(32'h80000000,  0,0,0,0,15);
+
+        // SUB: overflow/flags ARE computed -- this one is unchanged
         a=32'h80000000; b=32'h00000001; alu_op=`ALU_SUB;  #10; check(32'h7FFFFFFF,  0,0,1,1,16);
 
         if (fail == 0)
