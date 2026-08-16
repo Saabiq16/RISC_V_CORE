@@ -74,5 +74,9 @@
 `define FUNCT3_OR   3'b110
 `define FUNCT3_AND  3'b111
 
+// ── R-Type Funct7 Codes ──────────────────────────────
+`define FUNCT7_ADD  7'b0000000
+`define FUNCT7_SUB  7'b0100000
+
 
 `endif // RISCV_DEFINES_SVH
