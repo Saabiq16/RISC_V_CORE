@@ -4,7 +4,7 @@ module tb_register_file;
 
     // Testbench signals
     logic clk;
-    logic write_enable;
+    logic reg_write_enable;
     logic [4:0] read_addr1;
     logic [4:0] read_addr2;
     logic [4:0] write_addr;
@@ -15,7 +15,7 @@ module tb_register_file;
     // instantiating the register file
     register_file uut (
         .clk(clk),
-        .write_enable(write_enable),
+        .reg_write_enable(reg_write_enable),
         .read_addr1(read_addr1),
         .read_addr2(read_addr2),
         .write_addr(write_addr),
@@ -61,7 +61,7 @@ module tb_register_file;
     // Test Sequence
     initial begin
         // Initialize signals
-        write_enable = 0;
+        reg_write_enable = 0;
         read_addr1 = 0;
         read_addr2 = 0;
         write_addr = 0;
@@ -74,17 +74,17 @@ module tb_register_file;
 
         // Test 2: Write to X0 and check that it remains zero
         #20;
-        write_enable = 1;
+        reg_write_enable = 1;
         write_addr = 5'd0; // x0
         write_data = 32'd1;
         @(posedge clk);
         #1;
-        write_enable = 0; // Disable write
+        reg_write_enable = 0; // Disable write
         check(32'd0, 32'd0, 2); // Expect both read_data1 and read_data2 to be 0
 
         // Test 3: Write to another register and read it back
         #20;
-        write_enable = 1;
+        reg_write_enable = 1;
         write_addr = 5'd1; // x1
         write_data = 32'hDEADBEEF;
         @(posedge clk);
@@ -99,7 +99,7 @@ module tb_register_file;
         @(posedge clk);
         #1;
 
-        write_enable = 0; // Disable write
+        reg_write_enable = 0; // Disable write
         read_addr1 = 5'd1; // x1
         read_addr2 = 5'd31; // x31
         #1;
@@ -112,7 +112,7 @@ module tb_register_file;
         // Test 4 : write and read at same time to check whether read data is from previous value or new value
       @(negedge clk);
       $display("DEBUG negedge: time=%0t", $time);
-      write_enable = 1;
+      reg_write_enable = 1;
       write_addr = 5'd1;
       write_data = 32'hAAAAAAAA;
       read_addr1 = 5'd1;
@@ -133,7 +133,7 @@ module tb_register_file;
         #10;
 
         // Test 6 : write to reg with write enable low and check that value is not written
-        write_enable = 0;
+        reg_write_enable = 0;
         write_addr = 5'd1; // x1
         write_data = 32'hFFFFFFFF;
         #20;
@@ -142,7 +142,7 @@ module tb_register_file;
         #10;
 
         //test 7 : write to x2 doesnot affect x1 and x31
-        write_enable = 1;
+        reg_write_enable = 1;
         write_addr = 5'd2; // x2
         write_data = 32'h11111111;
         #20;

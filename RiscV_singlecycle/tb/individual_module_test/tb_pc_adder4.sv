@@ -3,14 +3,14 @@
 module tb_pc_adder4;
 
     logic [31:0] pc_current;
-    logic [31:0] pc_plus4;
+    logic [31:0] pc_plus_4;
 
     int pass_count = 0;
     int fail_count = 0;
 
     pc_adder4 dut (
         .pc_current(pc_current),
-        .pc_plus4(pc_plus4)
+        .pc_plus_4(pc_plus_4)
     );
 
     task automatic check(
@@ -20,12 +20,12 @@ module tb_pc_adder4;
     );
         pc_current = pc_in;
         #1;
-        if (pc_plus4 === exp_pc_plus4) begin
+        if (pc_plus_4 === exp_pc_plus4) begin
             pass_count++;
-            $display("PASS: %s (pc_current=0x%08h, pc_plus4=0x%08h)", test_name, pc_in, pc_plus4);
+            $display("PASS: %s (pc_current=0x%08h, pc_plus4=0x%08h)", test_name, pc_in, pc_plus_4);
         end else begin
             fail_count++;
-            $display("FAIL: %s | pc_current=0x%08h exp=0x%08h got=0x%08h", test_name, pc_in, exp_pc_plus4, pc_plus4);
+            $display("FAIL: %s | pc_current=0x%08h exp=0x%08h got=0x%08h", test_name, pc_in, exp_pc_plus4, pc_plus_4);
         end
     endtask
 

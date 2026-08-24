@@ -5,7 +5,7 @@ module tb_mux_write_data_src;
     logic [31:0] alu_result;
     logic [31:0] memory_read_data;
     logic [31:0] pc_plus_4;
-    logic [1:0]  mem_to_reg;
+    logic [1:0]  result_src;
     logic [31:0] write_back_data;
 
     int pass_count = 0;
@@ -15,7 +15,7 @@ module tb_mux_write_data_src;
         .alu_result       (alu_result),
         .memory_read_data (memory_read_data),
         .pc_plus_4        (pc_plus_4),
-        .mem_to_reg       (mem_to_reg),
+        .result_src       (result_src),
         .write_back_data  (write_back_data)
     );
 
@@ -23,14 +23,14 @@ module tb_mux_write_data_src;
         input logic [31:0] alu_result_in,
         input logic [31:0] memory_read_data_in,
         input logic [31:0] pc_plus_4_in,
-        input logic [1:0]  mem_to_reg_in,
+        input logic [1:0]  result_src_in,
         input logic [31:0] exp_out,
         input string       test_name
     );
         alu_result       = alu_result_in;
         memory_read_data = memory_read_data_in;
         pc_plus_4        = pc_plus_4_in;
-        mem_to_reg       = mem_to_reg_in;
+        result_src       = result_src_in;
         #1;
 
         if (write_back_data === exp_out) begin
@@ -43,12 +43,12 @@ module tb_mux_write_data_src;
     endtask
 
     initial begin
-        check(32'hDEADBEEF, 32'hCAFEBABE, 32'h00000024, 2'b00, 32'hDEADBEEF, "MemtoReg=00, alu_result selected");
-        check(32'hDEADBEEF, 32'hCAFEBABE, 32'h00000024, 2'b01, 32'hCAFEBABE, "MemtoReg=01, memory_read_data selected");
-        check(32'hDEADBEEF, 32'hCAFEBABE, 32'h00000024, 2'b10, 32'h00000024, "MemtoReg=10, PC+4 selected");
-        check(32'hDEADBEEF, 32'hCAFEBABE, 32'h00000024, 2'b11, 32'h00000000, "MemtoReg=11, default (unused) case");
-        check(32'h12345678, 32'h12345678, 32'h00000024, 2'b00, 32'h12345678, "Both alu/mem same, MemtoReg=00");
-        check(32'h12345678, 32'h12345678, 32'h00000024, 2'b01, 32'h12345678, "Both alu/mem same, MemtoReg=01");
+        check(32'hDEADBEEF, 32'hCAFEBABE, 32'h00000024, 2'b00, 32'hDEADBEEF, "result_src=00, alu_result selected");
+        check(32'hDEADBEEF, 32'hCAFEBABE, 32'h00000024, 2'b01, 32'hCAFEBABE, "result_src=01, memory_read_data selected");
+        check(32'hDEADBEEF, 32'hCAFEBABE, 32'h00000024, 2'b10, 32'h00000024, "result_src=10, PC+4 selected");
+        check(32'hDEADBEEF, 32'hCAFEBABE, 32'h00000024, 2'b11, 32'h00000000, "result_src=11, default (unused) case");
+        check(32'h12345678, 32'h12345678, 32'h00000024, 2'b00, 32'h12345678, "Both alu/mem same, result_src=00");
+        check(32'h12345678, 32'h12345678, 32'h00000024, 2'b01, 32'h12345678, "Both alu/mem same, result_src=01");
         check(32'h00000000, 32'h00000000, 32'h00000000, 2'b10, 32'h00000000, "All zeros, PC+4 selected");
         check(32'hFFFFFFFF, 32'hFFFFFFFF, 32'hFFFFFFFF, 2'b01, 32'hFFFFFFFF, "All ones, memory_read_data selected");
         check(32'h11111111, 32'h22222222, 32'h33333333, 2'b00, 32'h11111111, "Unique values, alu_result selected");

@@ -3,42 +3,42 @@
 
 module tb_mux_alu_src_a;
 
-    logic        alu_a_src;
+    logic        alu_src_sel_a;
     logic [31:0] rs1_data;
     logic [31:0] pc_current;
 
-    logic [31:0] alu_src_sel_a;
+    logic [31:0] mux_alu_a_out;
 
     int pass_count = 0;
     int fail_count = 0;
 
     mux_alu_src_a dut (
-        .alu_a_src     (alu_a_src),
+        .alu_src_sel_a (alu_src_sel_a),
         .rs1_data      (rs1_data),
         .pc_current    (pc_current),
-        .alu_src_sel_a (alu_src_sel_a)
+        .mux_alu_a_out (mux_alu_a_out)
     );
 
     task automatic check(
         input string       test_name,
-        input logic        t_alu_a_src,
+        input logic        t_alu_src_sel_a,
         input logic [31:0] t_rs1_data,
         input logic [31:0] t_pc_current,
         input logic [31:0] exp_out
     );
-        alu_a_src  = t_alu_a_src;
-        rs1_data   = t_rs1_data;
-        pc_current = t_pc_current;
+        alu_src_sel_a = t_alu_src_sel_a;
+        rs1_data      = t_rs1_data;
+        pc_current    = t_pc_current;
         #1;
 
-        if (alu_src_sel_a === exp_out) begin
+        if (mux_alu_a_out === exp_out) begin
             pass_count++;
             $display("[PASS] %s", test_name);
         end else begin
             fail_count++;
-            $display("[FAIL] %s  alu_a_src=%b rs1=%h pc=%h  exp=%h got=%h",
-                       test_name, t_alu_a_src, t_rs1_data, t_pc_current,
-                       exp_out, alu_src_sel_a);
+            $display("[FAIL] %s  sel=%b rs1=%h pc=%h  exp=%h got=%h",
+                       test_name, t_alu_src_sel_a, t_rs1_data, t_pc_current,
+                       exp_out, mux_alu_a_out);
         end
     endtask
 

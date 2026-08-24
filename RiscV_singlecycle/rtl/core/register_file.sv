@@ -1,6 +1,6 @@
 module register_file (
     input logic clk,
-    input logic write_enable,
+    input logic reg_write_enable,
     input logic [4:0] read_addr1,
     input logic [4:0] read_addr2,
     input logic [4:0] write_addr,
@@ -31,7 +31,7 @@ module register_file (
     // Write Logic
 
     always_ff @(posedge clk) begin
-        if (write_enable && write_addr != 5'd0) begin
+        if (reg_write_enable && write_addr != 5'd0) begin
             registers[write_addr] <= write_data; // Write
         end
     end

@@ -5,7 +5,7 @@ module tb_program_counter;
     logic        clk;
     logic        reset;
     logic [31:0] pc_next;
-    logic [31:0] pc_out;
+    logic [31:0] pc_current;
 
     int pass_count = 0;
     int fail_count = 0;
@@ -14,7 +14,7 @@ module tb_program_counter;
         .clk(clk),
         .reset(reset),
         .pc_next(pc_next),
-        .pc_out(pc_out)
+        .pc_current(pc_current)
     );
 
     // clock generation
@@ -25,12 +25,12 @@ module tb_program_counter;
         input string test_name
     );
         #1; // let non-blocking assignment settle after posedge
-        if (pc_out === exp_pc_out) begin
+        if (pc_current === exp_pc_out) begin
             pass_count++;
-            $display("PASS: %s (pc_out = %0h)", test_name, pc_out);
+            $display("PASS: %s (pc_out = %0h)", test_name, pc_current);
         end else begin
             fail_count++;
-            $display("FAIL: %s | exp=%0h got=%0h", test_name, exp_pc_out, pc_out);
+            $display("FAIL: %s | exp=%0h got=%0h", test_name, exp_pc_out, pc_current);
         end
     endtask
 
