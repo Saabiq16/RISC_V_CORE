@@ -4,6 +4,6 @@ module pc_branch_adder (
     output logic [31:0] branch_target
 );
 
-assign branch_target = base + immediate;
+assign branch_target = (base + immediate) & ~32'h1;
 
 endmodule
