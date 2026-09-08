@@ -11,7 +11,7 @@ module data_memory (
     output logic [31:0] read_data
 );
 
-logic [7:0] memory [0:1023];
+logic [7:0] memory [0:16383];
 
 //--------------------------------------------------
 // Synchronous Write Logic
