@@ -1,8 +1,34 @@
 `include "../includes/riscv_defines.svh"
 
-module riscv_single_cycle (
-    input logic clk,
-    input logic reset
+// Timing-only variant of riscv_single_cycle.
+// Identical datapath to the verified functional core, except instruction
+// and data memory are external port interfaces instead of instantiated
+// behavioral arrays. This allows Vivado/Yosys to synthesize the CPU
+// datapath alone, without attempting to infer BRAM/registers for the
+// large asynchronous-read memory arrays used in functional simulation.
+//
+// riscv_single_cycle.sv, instruction_memory.sv, and data_memory.sv
+// remain frozen and unmodified.
+
+module riscv_single_cycle_timing (
+    input  logic clk,
+    input  logic reset,
+
+    // Instruction memory interface (external)
+    output logic [31:0] imem_addr,
+    input  logic [31:0] imem_rdata,
+
+    // Data memory interface (external)
+    output logic [31:0] dmem_addr,
+    output logic [31:0] dmem_wdata,
+    output logic        dmem_write_enable,
+    output logic        dmem_read_enable,
+    output logic [2:0]  dmem_funct3,
+    input  logic [31:0] dmem_rdata,
+
+    // Synthesis/debug observability ports only
+    output logic [31:0] debug_pc,
+    output logic [31:0] debug_writeback_data
 );
 
     logic [31:0] pc_current;
@@ -39,21 +65,20 @@ module riscv_single_cycle (
     logic        pc_src_sel;
 
     program_counter pc_inst (
-        .clk     (clk),
-        .reset   (reset),
-        .pc_next (pc_next),
-        .pc_current  (pc_current)
+        .clk        (clk),
+        .reset      (reset),
+        .pc_next    (pc_next),
+        .pc_current (pc_current)
     );
 
     pc_adder4 pc_adder_inst (
         .pc_current (pc_current),
-        .pc_plus_4   (pc_plus_4)
+        .pc_plus_4  (pc_plus_4)
     );
 
-    instruction_memory instruction_memory_inst (
-        .address     (pc_current),
-        .instruction (instruction)
-    );
+    // Instruction memory replaced with external interface
+    assign imem_addr   = pc_current;
+    assign instruction = imem_rdata;
 
     instruction_decoder decoder (
         .instruction (instruction),
@@ -127,15 +152,13 @@ module riscv_single_cycle (
         .overflow (overflow)
     );
 
-    data_memory data_mem (
-        .clk             (clk),
-        .address         (alu_result),
-        .write_data      (rs2_data),
-        .dm_write_enable (mem_write_enable),
-        .dm_read_enable  (mem_read_enable),
-        .funct3          (funct3),
-        .read_data       (memory_read_data)
-    );
+    // Data memory replaced with external interface
+    assign dmem_addr         = alu_result;
+    assign dmem_wdata        = rs2_data;
+    assign dmem_write_enable = mem_write_enable;
+    assign dmem_read_enable  = mem_read_enable;
+    assign dmem_funct3       = funct3;
+    assign memory_read_data  = dmem_rdata;
 
     mux_write_data_src write_back_mux (
         .alu_result       (alu_result),
@@ -176,6 +199,7 @@ module riscv_single_cycle (
         .pc_next    (pc_next)
     );
 
-   
+    assign debug_pc             = pc_current;
+    assign debug_writeback_data = write_back_data;
 
 endmodule
