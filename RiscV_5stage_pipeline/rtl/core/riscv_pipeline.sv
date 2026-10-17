@@ -1,20 +1,21 @@
 `include "../includes/riscv_defines.svh"
 
-// 5-stage RV32I pipeline, NO hazard handling yet.
+// 5-stage RV32I pipeline.
+// Forwarding, load-use stall and branch/jump flush are all in, so programs run
+// without NOP padding.                                         // <<< CHANGED 1
 // Suffixes: _f fetch, _d decode, _e execute, _m memory, _w write-back.
-// The program must be NOP-padded (see hazard notes in the test plan).
 module riscv_pipeline (
     input logic clk,
     input logic reset
 );
 
     // ------------------------------------------------------------
-    // Hazard hooks. Tied off now, driven by the hazard unit later.
+    // Hazard control, all four driven by hazard_unit.          // <<< CHANGED 2
+    //   pc_stall, if_id_stall : load-use stall
+    //   if_id_flush           : taken branch / jump in EX (kills the IF instruction)
+    //   id_ex_flush           : load-use bubble or taken branch / jump (kills the ID instruction)
     // ------------------------------------------------------------
-    logic if_id_stall, if_id_flush, id_ex_flush;
-    assign if_id_stall = 1'b0;
-    assign if_id_flush = 1'b0;
-    assign id_ex_flush = 1'b0;
+    logic pc_stall, if_id_stall, if_id_flush, id_ex_flush;
 
     // ------------------------------------------------------------
     // IF
@@ -54,6 +55,11 @@ module riscv_pipeline (
     logic [31:0] base_out_e, branch_target_e;
     logic        branch_taken_e, pc_src_sel_e;
 
+    // forwarding
+    logic [1:0]  forward_a_e, forward_b_e;
+    logic [31:0] rs1_fwd_e, rs2_fwd_e;
+    logic [31:0] fwd_data_m;
+
     // ------------------------------------------------------------
     // MEM
     // ------------------------------------------------------------
@@ -73,11 +79,13 @@ module riscv_pipeline (
 
     // ============================================================
     // IF stage
-    // pc_next comes from EX (branch/jump resolve there), no flush yet
+    // pc_next comes from EX (branch/jump resolve there); the two wrong-path
+    // instructions behind a taken branch are flushed by hazard_unit
     // ============================================================
-    program_counter pc_inst (
+    program_counter_en pc_inst (                                // <<< CHANGED 4 (unchanged since the stall step)
         .clk         (clk),
         .reset       (reset),
+        .enable      (~pc_stall),
         .pc_next     (pc_next),
         .pc_current  (pc_current_f)
     );
@@ -156,6 +164,25 @@ module riscv_pipeline (
     assign rs2_data_d = (reg_write_w & (rd_w != 5'd0) & (rd_w == rs2_d))
                         ? write_back_data_w : rf_rs2_data_d;
 
+    // ------------------------------------------------------------
+    // Hazard unit.
+    //   load-use: a load in EX whose rd is read by the instruction in ID.
+    //             Hold PC and IF/ID one cycle, bubble ID/EX.
+    //   redirect: taken branch or jump in EX (pc_src_sel_e). Bubble IF/ID and
+    //             ID/EX, the PC already takes the target through pc_next.
+    // ------------------------------------------------------------
+    hazard_unit hz_unit (                                       // <<< CHANGED 3
+        .rs1_d        (rs1_d),
+        .rs2_d        (rs2_d),
+        .rd_e         (rd_e),
+        .mem_read_e   (mem_read_enable_e),
+        .pc_src_sel_e (pc_src_sel_e),
+        .stall_f      (pc_stall),
+        .stall_d      (if_id_stall),
+        .flush_d      (if_id_flush),
+        .flush_e      (id_ex_flush)
+    );
+
     id_ex_reg u_id_ex_reg (
         .clk                (clk),
         .reset              (reset),
@@ -216,17 +243,40 @@ module riscv_pipeline (
         .alu_control_signal (alu_control_signal_e)
     );
 
+    // ------------------------------------------------------------
+    // Forwarding (EX stage)
+    // ------------------------------------------------------------
+    forwarding_unit fwd_unit (
+        .rs1_e       (rs1_e),
+        .rs2_e       (rs2_e),
+        .rd_m        (rd_m),
+        .rd_w        (rd_w),
+        .reg_write_m (reg_write_m),
+        .reg_write_w (reg_write_w),
+        .forward_a_e (forward_a_e),
+        .forward_b_e (forward_b_e)
+    );
+
+    // jal/jalr in MEM must forward the link value, not the ALU result.
+    // A load in MEM is never forwarded from here: the load-use stall makes
+    // the dependent instruction wait until the load is in WB.
+    localparam logic [1:0] RESULT_SRC_PC4 = 2'b10;   // CHECK against mux_write_data_src
+    assign fwd_data_m = (result_src_m == RESULT_SRC_PC4) ? pc_plus_4_m : alu_result_m;
+
+    assign rs1_fwd_e = (forward_a_e == 2'b10) ? fwd_data_m :
+                       (forward_a_e == 2'b01) ? write_back_data_w : rs1_data_e;
+    assign rs2_fwd_e = (forward_b_e == 2'b10) ? fwd_data_m :
+                       (forward_b_e == 2'b01) ? write_back_data_w : rs2_data_e;
+
     mux_alu_src_a mux_a (
         .alu_src_sel_a (alu_src_a_e),
-        .rs1_data      (rs1_data_e),
+        .rs1_data      (rs1_fwd_e),
         .pc_current    (pc_current_e),
         .mux_alu_a_out (alu_a_e)
     );
 
-    // forwarding will later sit between rs2_data_e and this mux, and also
-    // feed write_data_e below
     mux_alu_src_b mux_b (
-        .rs2_data      (rs2_data_e),
+        .rs2_data      (rs2_fwd_e),
         .imm_data      (imm_ext_e),
         .alu_src_sel_b (alu_src_b_e),
         .mux_alu_b_out (alu_b_e)
@@ -245,7 +295,7 @@ module riscv_pipeline (
 
     mux_base_select_pc_branch base_mux (
         .pc_current (pc_current_e),
-        .rs1        (rs1_data_e),
+        .rs1        (rs1_fwd_e),
         .base_sel   (base_select_e),
         .base_out   (base_out_e)
     );
@@ -283,7 +333,7 @@ module riscv_pipeline (
         .mem_read_e   (mem_read_enable_e),
         .funct3_e     (funct3_e),
         .alu_result_e (alu_result_e),
-        .write_data_e (rs2_data_e),
+        .write_data_e (rs2_fwd_e),
         .pc_plus4_e   (pc_plus_4_e),
         .rd_e         (rd_e),
         .reg_write_m  (reg_write_m),
