@@ -1,1 +1,1 @@
-# jjRISC_V_CORE
+# RISC_V_CORE
